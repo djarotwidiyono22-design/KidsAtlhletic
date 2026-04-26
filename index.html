@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pencatat Kid's Atletik</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+    body, .font-sans {
+      font-family: 'Plus Jakarta Sans', sans-serif !important;
+    }
+    
+    /* Animations */
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideInFromRight { from { transform: translateX(1rem); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes slideInFromBottom { from { transform: translateY(1rem); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes zoomIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    
+    .animate-in.fade-in { animation: fadeIn 0.5s ease-out forwards; }
+    .animate-in.slide-in-from-right-4 { animation: slideInFromRight 0.3s ease-out forwards; }
+    .animate-in.slide-in-from-bottom-4 { animation: slideInFromBottom 0.5s ease-out forwards; }
+    .animate-in.slide-in-from-bottom-8 { animation: slideInFromBottom 0.7s ease-out forwards; }
+    .animate-in.zoom-in-95 { animation: zoomIn 0.3s ease-out forwards; }
+
+    /* Custom styles for separated rows */
+    .leaderboard-table {
+      border-separate: separate;
+      border-spacing: 0 12px;
+    }
+
+    .glass-effect {
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+  </style>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="min-h-screen bg-fixed bg-center bg-cover relative font-sans selection:bg-blue-500 selection:text-white" style="background-image: url('https://outdoorsmagic.com/wp-content/uploads/2024/11/Best-Running-Packs.jpg')">
+
+  <!-- Dark overlay -->
+  <div class="absolute inset-0 bg-gradient-to-br from-slate-900/95 via-slate-900/80 to-slate-900/95 backdrop-blur-[3px]"></div>
+
+  <!-- TOP RIGHT CONTROLS -->
+  <div class="fixed top-4 right-4 z-[90] flex items-center gap-3">
+    <button id="login-btn" onclick="window.showLoginModal()" class="flex items-center justify-center w-9 h-9 md:w-10 md:h-10 bg-slate-900/80 text-white hover:bg-slate-800 border border-slate-700 rounded-full transition-all shadow-lg backdrop-blur-md hover:scale-110 pointer-events-auto" title="Login Admin">
+      <i data-lucide="user" class="w-4 h-4 text-slate-300"></i>
+    </button>
+
+    <div id="cloud-status" class="flex items-center gap-2 bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-full border border-slate-700 shadow-lg transition-colors duration-300 pointer-events-none">
+      <span class="relative flex h-3 w-3">
+        <span id="cloud-status-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+        <span id="cloud-status-dot" class="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+      </span>
+      <span id="cloud-status-text" class="text-[10px] font-black text-white tracking-widest uppercase">OFFLINE</span>
+    </div>
+  </div>
+
+  <div id="toast-container" class="fixed top-16 right-4 z-[100] flex flex-col gap-3 pointer-events-none"></div>
+
+  <!-- PUBLIC VIEW -->
+  <div id="public-view" class="relative z-10 p-4 md:p-8 min-h-screen flex flex-col hidden uppercase">
+    <div class="max-w-7xl mx-auto w-full flex-1 space-y-8 uppercase">
+      <header class="relative py-8 flex flex-col items-center justify-center text-center overflow-hidden animate-in fade-in duration-700 uppercase">
+        <div class="w-32 h-32 md:w-44 md:h-44 mb-2 flex items-center justify-center z-10 relative group cursor-pointer">
+          <img src="https://raw.githubusercontent.com/djarotwidiyono22-design/KidsAtlhletic/main/Desain%20tanpa%20judul%20(1).png" alt="Logo" class="w-full h-full object-contain drop-shadow-2xl group-hover:scale-110 transition-transform duration-500" />
+        </div>
+        <h1 class="text-6xl md:text-8xl font-black text-white tracking-tighter z-10 drop-shadow-2xl uppercase">KID'S ATHLETIC</h1>
+        <div class="mt-4 flex flex-col items-center gap-2 uppercase">
+          <div class="flex items-center gap-3">
+            <span class="h-[2px] w-12 bg-blue-500 rounded-full"></span>
+            <p class="text-blue-300 font-black text-sm md:text-base tracking-[0.4em] uppercase">OLIMPIADE OLAHRAGA SISWA NASIONAL</p>
+            <span class="h-[2px] w-12 bg-blue-500 rounded-full"></span>
+          </div>
+          <div class="space-y-1 mt-2 text-center uppercase">
+            <p class="text-white font-bold text-xs md:text-sm tracking-[0.2em] uppercase">JENJANG SD/MI/SEDERAJAT</p>
+            <p id="header-kecamatan" class="text-blue-400 font-black text-sm md:text-xl tracking-[0.2em] uppercase"></p>
+            <p id="header-tahun" class="text-white font-black text-sm md:text-xl tracking-[0.3em] uppercase"></p>
+          </div>
+        </div>
+      </header>
+      <div class="space-y-12 pb-12 uppercase" id="public-leaderboards"></div>
+    </div>
+  </div>
+
+  <!-- ADMIN VIEW -->
+  <div id="admin-view" class="relative z-10 flex h-[100dvh] w-full overflow-hidden p-0 md:p-4 animate-in fade-in duration-500 hidden uppercase">
+    <div class="flex-1 flex flex-col md:flex-row bg-white/95 backdrop-blur-3xl shadow-2xl md:rounded-[2.5rem] overflow-hidden border border-white/50">
+      
+      <aside class="w-full md:w-[300px] lg:w-[340px] bg-slate-50/80 border-r border-slate-200/40 flex flex-col flex-shrink-0 z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
+        <div class="p-6 lg:p-8 flex items-center gap-4 border-b border-slate-200/40 bg-white/50">
+          <div class="w-14 h-14 lg:w-16 lg:h-16 rounded-2xl flex items-center justify-center bg-white shadow-md p-1.5 border border-slate-100 flex-shrink-0 group cursor-pointer hover:scale-105 transition-transform">
+            <img src="https://raw.githubusercontent.com/djarotwidiyono22-design/KidsAtlhletic/main/Desain%20tanpa%20judul%20(1).png" alt="Logo" class="w-full h-full object-contain drop-shadow-sm" />
+          </div>
+          <div class="flex flex-col justify-center">
+            <h1 class="text-xl lg:text-2xl font-black text-slate-800 tracking-tight leading-none mb-1.5 uppercase">KID'S ATHLETIC</h1>
+            <p class="text-[8px] lg:text-[9px] font-black text-blue-600 tracking-[0.15em] leading-tight opacity-90 uppercase">Olimpiade Olahraga<br/>Siswa Nasional</p>
+          </div>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto p-5 lg:p-6 space-y-2" id="sidebar-nav"></nav>
+
+        <div class="p-5 lg:p-6 border-t border-slate-200/40 bg-white/50">
+          <button onclick="window.doLogout()" class="w-full flex items-center justify-center gap-2 bg-rose-50 text-rose-500 border border-rose-100 hover:bg-rose-500 hover:text-white hover:border-rose-500 px-5 py-4 rounded-2xl text-xs font-black tracking-widest transition-all shadow-sm uppercase">
+            <i data-lucide="log-out" class="w-4 h-4"></i> KELUAR SISTEM
+          </button>
+        </div>
+      </aside>
+
+      <main class="flex-1 h-full overflow-y-auto relative bg-slate-50/50">
+        <div class="absolute inset-0 pointer-events-none z-[-5] opacity-[0.06]" style="background-image: radial-gradient(#0f172a 1.5px, transparent 1.5px); background-size: 32px 32px;"></div>
+        <div class="p-6 md:p-10 lg:p-12 min-h-full">
+          
+          <!-- TAB: PESERTA -->
+          <div id="tab-peserta" class="admin-tab space-y-8 animate-in slide-in-from-right-4 duration-300 uppercase">
+             <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 uppercase">
+              <div>
+                <h2 class="text-3xl font-black flex items-center gap-3 text-slate-800 tracking-tight uppercase"><i data-lucide="users" class="text-blue-600 w-8 h-8"></i> DATA PESERTA</h2>
+                <p class="text-xs text-slate-500 font-bold tracking-widest mt-2 uppercase">KELOLA REGISTRASI ATLET</p>
+              </div>
+              <div class="flex gap-3 uppercase">
+                <button onclick="window.downloadTemplateCSV()" class="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-xs font-black tracking-widest transition-all shadow-sm uppercase">TEMPLATE</button>
+                <input type="file" accept=".csv" id="upload-csv" class="hidden" onchange="window.handleImportCSV(event)"/>
+                <label for="upload-csv" class="cursor-pointer flex items-center gap-2 bg-slate-800 text-white hover:bg-slate-700 px-5 py-2.5 rounded-xl text-xs font-black tracking-widest transition-all shadow-lg uppercase">IMPORT CSV</label>
+              </div>
+            </div>
+            
+            <form onsubmit="window.addParticipant(event)" class="flex flex-wrap lg:flex-nowrap gap-3 bg-white p-5 rounded-3xl border-none shadow-sm uppercase">
+              <input type="text" id="newPartBib" placeholder="No. Bib" class="w-full lg:w-24 px-4 py-3 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-black text-sm uppercase" />
+              <input type="text" id="newPartName" placeholder="Nama Atlet / Tim" class="flex-1 px-4 py-3 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm uppercase" required/>
+              <input type="text" id="newPartSchool" placeholder="Asal Sekolah" class="flex-1 px-4 py-3 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm uppercase"/>
+              <select id="newPartGender" class="px-4 py-3 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-black text-sm uppercase">
+                <option value="L">PUTRA (L)</option>
+                <option value="P">PUTRI (P)</option>
+              </select>
+              <button type="submit" class="w-full lg:w-auto bg-blue-600 text-white px-8 py-3 rounded-xl font-black tracking-widest hover:bg-blue-700 transition-all shadow-lg uppercase">TAMBAH</button>
+            </form>
+
+            <div class="overflow-hidden rounded-[2rem] bg-white shadow-xl uppercase">
+              <table class="w-full text-left uppercase">
+                <thead class="bg-slate-50 text-slate-500 text-[10px] tracking-widest uppercase">
+                  <tr><th class="p-6 font-black uppercase">NO</th><th class="p-6 font-black uppercase">BIB</th><th class="p-6 font-black uppercase">NAMA ATLET</th><th class="p-6 font-black uppercase">SEKOLAH</th><th class="p-6 font-black uppercase">KAT.</th><th class="p-6 font-black text-center w-24 uppercase">AKSI</th></tr>
+                </thead>
+                <tbody id="peserta-tbody" class="divide-y divide-slate-50 uppercase"></tbody>
+              </table>
+            </div>
+          </div>
+          
+          <div id="tab-hasil_pertandingan" class="admin-tab hidden animate-in slide-in-from-right-4 duration-300 uppercase">
+            <div class="mb-8 uppercase">
+              <h2 class="text-3xl font-black flex items-center gap-3 text-slate-800 tracking-tight uppercase"><i data-lucide="list-ordered" class="text-blue-600 w-8 h-8"></i> HASIL PERTANDINGAN</h2>
+              <p class="text-xs text-slate-500 font-bold tracking-widest mt-2 uppercase">REKAPITULASI HASIL KESELURUHAN</p>
+            </div>
+            <div id="admin-leaderboards" class="space-y-12 uppercase"></div>
+          </div>
+          
+          <div id="tab-cabang" class="admin-tab hidden space-y-8 animate-in slide-in-from-right-4 duration-300 uppercase">
+             <div class="uppercase"><h2 class="text-3xl font-black flex items-center gap-3 text-slate-800 tracking-tight uppercase"><i data-lucide="activity" class="text-blue-600 w-8 h-8"></i> CABANG LOMBA</h2><p class="text-xs text-slate-500 font-bold tracking-widest mt-2 uppercase">PENGATURAN JENIS PERLOMBAAN</p></div>
+            <form onsubmit="window.addEvent(event)" class="flex gap-3 bg-white p-5 rounded-3xl border-none shadow-sm uppercase">
+              <input type="text" id="newEventName" placeholder="Nama Cabang Lomba Baru..." class="flex-1 px-4 py-3 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-black text-sm uppercase" required/>
+              <button type="submit" class="bg-blue-600 text-white px-8 py-3 rounded-xl font-black tracking-widest hover:bg-blue-700 transition-all shadow-lg uppercase">TAMBAH</button>
+            </form>
+            <div id="cabang-list" class="grid grid-cols-1 md:grid-cols-2 gap-5 uppercase"></div>
+          </div>
+
+          <div id="tab-hasil" class="admin-tab hidden animate-in slide-in-from-right-4 duration-300 uppercase">
+            <div class="mb-8 uppercase"><h2 class="text-3xl font-black flex items-center gap-3 text-slate-800 tracking-tight uppercase"><i data-lucide="timer" class="text-blue-600 w-8 h-8"></i> INPUT HASIL WAKTU</h2><p class="text-xs text-slate-500 font-bold tracking-widest mt-2 uppercase">DATA TERSIMPAN OTOMATIS SAAT KURSOR BERPINDAH</p></div>
+            <div id="input-hasil-container" class="uppercase"></div>
+          </div>
+
+          <div id="tab-laporan" class="admin-tab hidden space-y-8 animate-in slide-in-from-right-4 duration-300 uppercase">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-slate-200 pb-6 uppercase">
+              <div><h2 class="text-3xl font-black flex items-center gap-3 text-slate-800 tracking-tight uppercase"><i data-lucide="file-text" class="text-blue-600 w-8 h-8"></i> LAPORAN HASIL</h2><p class="text-xs text-slate-500 font-bold tracking-widest mt-2 uppercase">CETAK PDF ATAU EKSPOR DATA</p></div>
+              <div class="flex flex-wrap gap-3 uppercase">
+                <button onclick="window.printOfficialReport()" class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-8 py-3.5 rounded-2xl font-black tracking-widest shadow-lg hover:-translate-y-1 transition-all uppercase">CETAK LAPORAN (PDF)</button>
+                <button onclick="window.downloadReportCSV()" class="bg-white border border-emerald-200 text-emerald-600 px-8 py-3.5 rounded-2xl font-black tracking-widest shadow-sm hover:bg-emerald-50 transition-all uppercase">EKSPOR EXCEL (CSV)</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB: PENGATURAN -->
+          <div id="tab-pengaturan" class="admin-tab hidden space-y-8 animate-in slide-in-from-right-4 duration-300 uppercase">
+            
+            <!-- CONTENT: PENGATURAN KOP -->
+            <div id="subtab-kop" class="pengaturan-content space-y-8 uppercase">
+              <div class="mb-4 uppercase">
+                <h2 class="text-3xl font-black flex items-center gap-3 text-slate-800 tracking-tight uppercase"><i data-lucide="layout" class="text-blue-600 w-8 h-8 uppercase"></i> PENGATURAN KOP</h2>
+                <p class="text-xs text-slate-500 font-bold tracking-widest mt-2 uppercase text-blue-600/70 uppercase">IDENTITAS WILAYAH & WAKTU LAPORAN</p>
+              </div>
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 uppercase">
+                <div class="bg-white p-8 rounded-[2.5rem] border-none shadow-xl space-y-6">
+                  <h3 class="text-xs font-black text-blue-600 tracking-widest uppercase flex items-center gap-2"><i data-lucide="layout" class="w-4 h-4 uppercase"></i> Form Identitas</h3>
+                  <div class="grid grid-cols-2 gap-4 uppercase">
+                    <div><label class="block text-[10px] font-black text-slate-400 mb-2 uppercase">TEMPAT (KEC/KOTA/PROV)</label><input type="text" id="set-kecamatan" placeholder="Contoh: Kec. Pesanggrahan" class="w-full px-5 py-3 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-bold uppercase" /></div>
+                    <div><label class="block text-[10px] font-black text-slate-400 mb-2 uppercase">TAHUN</label><input type="text" id="set-tahun" class="w-full px-5 py-3 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-bold uppercase" /></div>
+                  </div>
+                  <div><label class="block text-[10px] font-black text-slate-400 mb-2 uppercase">ALAMAT SEKRETARIAT</label><input type="text" id="set-sekretariat" class="w-full px-5 py-3 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-bold uppercase" /></div>
+                  <button onclick="window.saveAppSettings()" class="w-full bg-blue-600 text-white font-black tracking-widest py-5 rounded-2xl shadow-lg hover:bg-blue-700 uppercase transition-all">SIMPAN PERUBAHAN KOP</button>
+                </div>
+                <div class="bg-white p-8 rounded-[2.5rem] border-none shadow-xl uppercase">
+                   <h3 class="text-xs font-black text-slate-400 tracking-widest uppercase mb-6">PREVIEW KOP SURAT</h3>
+                   <div id="prev-kop-title" class="p-10 border-2 border-dashed border-slate-100 rounded-[2rem] space-y-1 text-center bg-slate-50/50">
+                      <p class="text-[10px] font-black text-slate-800 uppercase leading-relaxed">LAPORAN HASIL PERLOMBAAN</p>
+                      <p class="text-[10px] font-black text-slate-800 uppercase leading-relaxed">KID'S ATHLETIC O2SN -</p>
+                      <p class="text-[10px] font-black text-slate-800 uppercase leading-relaxed">TAHUN -</p>
+                   </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- CONTENT: DATA PENANDATANGAN -->
+            <div id="subtab-ttd" class="pengaturan-content hidden space-y-8 uppercase">
+               <div class="mb-4 uppercase">
+                <h2 class="text-3xl font-black flex items-center gap-3 text-slate-800 tracking-tight uppercase uppercase"><i data-lucide="user-check" class="text-blue-600 w-8 h-8 uppercase"></i> DATA PENANDATANGAN</h2>
+                <p class="text-xs text-slate-500 font-bold tracking-widest mt-2 uppercase text-blue-600/70 uppercase">PEJABAT YANG BERTANGGUNG JAWAB</p>
+              </div>
+               <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 uppercase">
+                <div class="bg-white p-8 rounded-[2.5rem] border-none shadow-xl space-y-6">
+                  <h3 class="text-xs font-black text-blue-600 tracking-widest flex items-center gap-2 uppercase"><i data-lucide="user-check" class="w-4 h-4 uppercase"></i> Form Pejabat</h3>
+                  <div class="space-y-4 uppercase">
+                    <div><label class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">KETUA PELAKSANA</label><input type="text" id="set-ketua-nama" class="w-full px-5 py-3 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-bold" /></div>
+                    <div><label class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">NIP KETUA</label><input type="text" id="set-ketua-nip" class="w-full px-5 py-3 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-mono" /></div>
+                    <div><label class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">KOORDINATOR</label><input type="text" id="set-koor-nama" class="w-full px-5 py-3 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-bold" /></div>
+                    <div><label class="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest">NIP KOORDINATOR</label><input type="text" id="set-koor-nip" class="w-full px-5 py-3 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-mono" /></div>
+                  </div>
+                  <button onclick="window.saveAppSettings()" class="w-full bg-blue-600 text-white font-black tracking-widest py-5 rounded-2xl shadow-lg hover:bg-blue-700 uppercase transition-all">SIMPAN DATA TANDA TANGAN</button>
+                </div>
+                <div class="bg-white p-8 rounded-[2.5rem] border-none shadow-xl uppercase">
+                   <h3 class="text-xs font-black text-slate-400 tracking-widest uppercase mb-8">PREVIEW TANDA TANGAN</h3>
+                   <div class="space-y-10 italic text-slate-400 uppercase">
+                      <div class="border-l-4 border-slate-100 pl-6">
+                         <p class="text-[10px] font-bold mb-10 uppercase uppercase">Ketua Pelaksana,</p>
+                         <p class="text-sm font-black text-slate-600 not-italic" id="prev-ketua-nama">(Belum diisi)</p>
+                         <p class="text-[10px] font-mono uppercase uppercase" id="prev-ketua-nip">NIP. -</p>
+                      </div>
+                      <div class="border-l-4 border-slate-100 pl-6 uppercase">
+                         <p class="text-[10px] font-bold mb-10 uppercase uppercase">Koordinator Cabor,</p>
+                         <p class="text-sm font-black text-slate-600 not-italic" id="prev-koor-nama">(Belum diisi)</p>
+                         <p class="text-[10px] font-mono uppercase uppercase" id="prev-koor-nip">NIP. -</p>
+                      </div>
+                   </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- CONTENT: RESET PASSWORD -->
+            <div id="subtab-keamanan" class="pengaturan-content hidden space-y-8 uppercase">
+              <div class="mb-4 uppercase">
+                <h2 class="text-3xl font-black flex items-center gap-3 text-slate-800 tracking-tight uppercase uppercase"><i data-lucide="shield-lock" class="text-blue-600 w-8 h-8 uppercase"></i> KEAMANAN SISTEM</h2>
+                <p class="text-xs text-slate-500 font-bold tracking-widest mt-2 uppercase text-blue-600/70 uppercase">PENGATURAN AKSES LOGIN ADMIN</p>
+              </div>
+              <div class="max-w-xl uppercase">
+                <div class="bg-slate-900 p-8 rounded-[2.5rem] border-none shadow-2xl space-y-6 uppercase">
+                  <div class="flex items-center gap-4 mb-4 uppercase">
+                    <div class="w-12 h-12 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 uppercase">
+                      <i data-lucide="shield-lock" class="w-6 h-6 uppercase"></i>
+                    </div>
+                    <div class="uppercase">
+                      <h3 class="text-xs font-black text-amber-500 tracking-widest uppercase">Update Password Admin</h3>
+                      <p class="text-[10px] text-slate-500 font-bold uppercase">Ubah kata sandi secara berkala</p>
+                    </div>
+                  </div>
+                  <div><label class="block text-[10px] font-black text-slate-500 mb-3 uppercase">PASSWORD LAMA</label><input type="password" id="set-pass-old" placeholder="••••••••" class="w-full px-5 py-4 bg-slate-800 border-none rounded-2xl outline-none focus:ring-2 focus:ring-amber-500 font-bold text-white uppercase" /></div>
+                  <div><label class="block text-[10px] font-black text-slate-500 mb-3 uppercase">PASSWORD BARU</label><input type="password" id="set-pass-new" placeholder="MIN. 4 KARAKTER" class="w-full px-5 py-4 bg-slate-800 border-none rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold text-white uppercase" /></div>
+                  <button onclick="window.changeAdminPassword()" class="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black tracking-widest py-5 rounded-2xl shadow-lg uppercase transition-all uppercase">UPDATE PASSWORD SEKARANG</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- MODALS -->
+  <div id="login-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div class="bg-white/95 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl border-none max-w-sm w-full p-10 animate-in zoom-in-95 duration-300 uppercase">
+      <div class="flex justify-between items-center mb-10 uppercase uppercase uppercase">
+        <h2 class="text-4xl font-black text-slate-800 tracking-tighter uppercase uppercase uppercase">LOGIN</h2>
+        <button onclick="window.hideLoginModal()" class="text-slate-400 hover:text-slate-600 bg-slate-100 p-2.5 rounded-full transition-colors uppercase uppercase uppercase">✕</button>
+      </div>
+      <div id="login-error" class="hidden mb-6 p-4 bg-rose-50 border-none text-rose-700 text-xs font-bold rounded-2xl uppercase text-center uppercase uppercase uppercase"></div>
+      <form onsubmit="window.handleLogin(event)" class="space-y-6 uppercase uppercase uppercase">
+        <div>
+          <label class="block text-[10px] font-black text-slate-400 mb-2 tracking-widest uppercase uppercase uppercase">USERNAME</label>
+          <div class="relative uppercase">
+            <i data-lucide="user" class="absolute left-4 top-4 text-slate-300 w-5 h-5 uppercase"></i>
+            <input type="text" id="login-username" required class="w-full pl-12 pr-4 py-4 bg-slate-50 border-none rounded-2xl focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all font-bold uppercase uppercase uppercase" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-[10px] font-black text-slate-400 mb-2 tracking-widest uppercase uppercase uppercase">PASSWORD</label>
+          <div class="relative uppercase">
+            <i data-lucide="lock" class="absolute left-4 top-4 text-slate-300 w-5 h-5 uppercase"></i>
+            <input type="password" id="login-password" required class="w-full pl-12 pr-12 py-4 bg-slate-50 border-none rounded-2xl focus:bg-white focus:ring-4 focus:ring-blue-500/10 outline-none transition-all font-bold uppercase uppercase uppercase" />
+            <button type="button" onclick="window.togglePasswordVisibility()" class="absolute right-4 top-4 text-slate-300 hover:text-blue-500 transition-colors uppercase uppercase uppercase">
+              <i data-lucide="eye" id="pass-eye-icon" class="w-5 h-5 uppercase"></i>
+            </button>
+          </div>
+        </div>
+        <button type="submit" class="w-full bg-slate-900 text-white font-black tracking-widest py-5 rounded-2xl shadow-xl shadow-slate-900/20 transition-all mt-4 transform hover:-translate-y-1 uppercase uppercase uppercase uppercase">MASUK SISTEM</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="edit-modal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex items-center justify-center p-4 uppercase">
+    <div class="bg-white/95 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl border-none max-w-lg w-full p-10 animate-in zoom-in-95 duration-300 uppercase uppercase">
+      <div class="flex justify-between items-center mb-10 uppercase uppercase uppercase uppercase"><h2 class="text-3xl font-black text-slate-800 tracking-tight uppercase uppercase uppercase uppercase">EDIT PESERTA</h2><button onclick="window.hideEditModal()" class="text-slate-400 hover:text-slate-600 bg-slate-100 p-2.5 rounded-full transition-colors uppercase uppercase uppercase uppercase">✕</button></div>
+      <form onsubmit="window.handleUpdateParticipant(event)" class="space-y-6 uppercase uppercase uppercase uppercase">
+        <input type="hidden" id="edit-id" />
+        <div><label class="block text-[10px] font-black text-slate-400 mb-2 uppercase uppercase uppercase">NO BIB</label><input type="text" id="edit-bib" class="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl font-black outline-none focus:ring-2 focus:ring-blue-500 uppercase uppercase uppercase" /></div>
+        <div><label class="block text-[10px] font-black text-slate-400 mb-2 uppercase uppercase uppercase">NAMA ATLET</label><input type="text" id="edit-name" required class="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-500 uppercase uppercase uppercase" /></div>
+        <div><label class="block text-[10px] font-black text-slate-400 mb-2 uppercase uppercase uppercase">ASAL SEKOLAH</label><input type="text" id="edit-school" class="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-500 uppercase uppercase uppercase" /></div>
+        <div><label class="block text-[10px] font-black text-slate-400 mb-2 uppercase uppercase uppercase">KATEGORI</label><select id="edit-gender" class="w-full px-5 py-4 bg-slate-50 border-none rounded-2xl font-black outline-none focus:ring-2 focus:ring-blue-500 uppercase uppercase uppercase uppercase"><option value="L">PUTRA (L)</option><option value="P">PUTRI (P)</option></select></div>
+        <button type="submit" class="w-full bg-blue-600 text-white font-black tracking-widest py-5 rounded-2xl mt-4 shadow-lg hover:bg-blue-700 transition-all uppercase uppercase uppercase uppercase">SIMPAN PERUBAHAN</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const SPREADSHEET_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxwCnmRUVaznyk4w0Bljx5ZcZpIZn_4zO_NOZDq3Q-tlWLL_bhEzgExl9ABx8eB9XAF/exec";
+    const URL_LOGO_KKGO = "https://raw.githubusercontent.com/djarotwidiyono22-design/KidsAtlhletic/main/KKGO.png";
+    const URL_LOGO_O2SN = "https://raw.githubusercontent.com/djarotwidiyono22-design/KidsAtlhletic/main/Desain%20tanpa%20judul%20(1).png";
+
+    let state = {
+      events: [{ id: 'e1', name: 'KANGA ESCAPE', createdAt: Date.now() }, { id: 'e2', name: 'FORMULA ONE', createdAt: Date.now() + 1 }],
+      participants: [],
+      settings: {
+        ketuaNama: '', ketuaNip: '', koorNama: '', koorNip: '', adminPassword: 'admin',
+        kecamatan: 'PESANGGRAHAN', tahun: '2026', sekretariat: 'Kec. Pesanggrahan, Kota Administrasi Jakarta Selatan'
+      },
+      isLoggedIn: false, 
+      activeTab: 'peserta', 
+      activeSubTab: 'kop',
+      isSettingsExpanded: false,
+      autoSyncTimeout: null, 
+      isCloudConnected: false
+    };
+
+    // --- CORE LOGIC: CLOUD SYNC ---
+    window.setCloudStatus = (isConnected) => {
+      state.isCloudConnected = isConnected;
+      const ping = document.getElementById('cloud-status-ping'), dot = document.getElementById('cloud-status-dot'), text = document.getElementById('cloud-status-text');
+      if (!ping || !dot || !text) return;
+      if (isConnected) {
+        ping.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75';
+        dot.className = 'relative inline-flex rounded-full h-3 w-3 bg-emerald-500 uppercase';
+        text.innerText = 'ONLINE';
+      } else {
+        ping.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75';
+        dot.className = 'relative inline-flex rounded-full h-3 w-3 bg-rose-500 uppercase';
+        text.innerText = 'OFFLINE';
+      }
+    };
+
+    window.showNotification = (message, type = 'success') => {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      let bgColor = type === 'error' ? 'bg-rose-500 border-none' : type === 'info' ? 'bg-blue-600 border-none' : 'bg-emerald-500 border-none';
+      let icon = type === 'error' ? 'alert-circle' : type === 'info' ? 'info' : 'check-circle';
+      toast.className = `${bgColor} text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 transform transition-all duration-500 translate-x-10 opacity-0 pointer-events-auto uppercase font-black text-[10px] tracking-widest uppercase uppercase`;
+      toast.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4 uppercase uppercase"></i><span>${message}</span>`;
+      container.appendChild(toast);
+      if (window.lucide) lucide.createIcons();
+      requestAnimationFrame(() => { toast.classList.remove('translate-x-10', 'opacity-0'); toast.classList.add('translate-x-0', 'opacity-100'); });
+      setTimeout(() => {
+        toast.classList.remove('translate-x-0', 'opacity-100'); toast.classList.add('translate-x-10', 'opacity-0');
+        setTimeout(() => toast.remove(), 500);
+      }, 3500);
+    };
+
+    const triggerAutoSync = () => {
+      if (!SPREADSHEET_WEB_APP_URL || !SPREADSHEET_WEB_APP_URL.startsWith('http')) return;
+      if (state.autoSyncTimeout) clearTimeout(state.autoSyncTimeout);
+      state.autoSyncTimeout = setTimeout(async () => {
+        try {
+          const payload = { action: 'gopost', data: { events: state.events, participants: state.participants, settings: state.settings } };
+          const res = await fetch(SPREADSHEET_WEB_APP_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
+          if (!res.ok) throw new Error();
+          window.setCloudStatus(true);
+        } catch (error) { window.setCloudStatus(false); }
+      }, 2000);
+    };
+
+    const loadFromSpreadsheet = async () => {
+      if (!SPREADSHEET_WEB_APP_URL || !SPREADSHEET_WEB_APP_URL.startsWith('http')) return;
+      try {
+        const res = await fetch(SPREADSHEET_WEB_APP_URL + "?action=goget&t=" + Date.now());
+        const responseData = JSON.parse(await res.text());
+        if (responseData.data) {
+          if (responseData.data.events) state.events = responseData.data.events;
+          if (responseData.data.participants) state.participants = responseData.data.participants;
+          if (responseData.data.settings) state.settings = { ...state.settings, ...responseData.data.settings };
+          renderApp(); 
+          window.setCloudStatus(true);
+        }
+      } catch (err) { 
+        window.setCloudStatus(false); 
+      }
+    };
+
+    // --- CORE LOGIC: DATA HANDLING ---
+    const calcMs = (m, s, ms) => (parseInt(m) || 0) * 60000 + (parseInt(s) || 0) * 1000 + (parseInt(ms) || 0);
+
+    const getResults = () => {
+      const processGroup = (genderFilter) => {
+        const group = state.participants.filter(p => p.gender === genderFilter).map(p => {
+          let totalTime = 0;
+          state.events.forEach(e => { totalTime += calcMs(p.scores?.[e.id]?.m, p.scores?.[e.id]?.s, p.scores?.[e.id]?.ms); });
+          return { ...p, totalTime };
+        });
+        const numParts = group.length;
+        group.sort((a, b) => (a.totalTime === 0 ? 1 : b.totalTime === 0 ? -1 : a.totalTime - b.totalTime));
+        return group.map((p, index, arr) => {
+          let finalRank = index + 1;
+          if (index > 0 && p.totalTime === arr[index - 1].totalTime) finalRank = arr[index - 1].finalRank;
+          const totalPoints = p.totalTime > 0 ? numParts - finalRank + 1 : 0;
+          return { ...p, finalRank, totalPoints };
+        });
+      };
+      return { putra: processGroup('L'), putri: processGroup('P') };
+    };
+
+    // --- RENDERING HELPERS ---
+    const formatTitleCase = (text) => text ? text.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') : '';
+    const formatDisplayTime = (timeObj) => {
+      if (!timeObj) return '-';
+      const m = String(timeObj.m || 0).padStart(2, '0'), s = String(timeObj.s || 0).padStart(2, '0'), ms = String(timeObj.ms || 0).padStart(3, '0');
+      if (m === '00' && s === '00' && ms === '000') return '-';
+      return `${m}:${s}.${ms}`;
+    };
+    const formatTotalTime = (totalMs) => {
+      if (!totalMs) return '-';
+      const m = Math.floor(totalMs / 60000), s = Math.floor((totalMs % 60000) / 1000), ms = totalMs % 1000;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
+    };
+
+    const generateLeaderboardHTML = (data, title, badgeColorClass) => {
+      let html = `<div class="mb-14 last:mb-0 animate-in slide-in-from-bottom-8 duration-700 uppercase"><div class="flex items-center gap-3 mb-6 justify-center md:justify-start uppercase uppercase"><div class="p-3 rounded-2xl text-white shadow-lg ${badgeColorClass} uppercase"><i data-lucide="trophy" class="w-6 h-6"></i></div><h3 class="text-3xl font-black text-white tracking-tight uppercase drop-shadow-md uppercase uppercase">${title}</h3></div><div class="overflow-x-auto pb-4 uppercase"><table class="w-full text-left leaderboard-table min-w-[900px] uppercase"><thead><tr class="text-white/70 text-[10px] tracking-[0.2em] font-black uppercase border-none uppercase"><th class="px-5 pb-2 text-center w-24 uppercase uppercase">RANK</th><th class="px-5 pb-2 text-center w-24 uppercase uppercase">BIB</th><th class="px-5 pb-2 uppercase uppercase">PESERTA</th>${state.events.map(e => `<th class="px-5 pb-2 text-center text-white/90 uppercase">${e.name}</th>`).join('')}<th class="px-5 pb-2 text-center text-blue-200 uppercase uppercase">TOTAL WAKTU</th><th class="px-5 pb-2 text-center text-emerald-300 uppercase uppercase">TOTAL POIN</th></tr></thead><tbody class="uppercase">`;
+      if (data.length === 0) { html += `<tr><td colSpan="${5 + state.events.length}" class="p-16 text-center bg-white/10 backdrop-blur-md rounded-3xl text-white/60 font-black tracking-widest shadow-xl uppercase border-none uppercase uppercase">BELUM ADA DATA</td></tr>`; } else {
+        data.forEach(r => {
+          let rowBg = "bg-white/90 glass-effect shadow-xl", rankBadge = "bg-slate-100 text-slate-800 shadow-inner", textColor = "text-black", schoolColor = "text-blue-800";
+          if (r.finalRank === 1 && r.totalPoints > 0) { rowBg = "bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-100 shadow-amber-500/20"; rankBadge = "bg-black text-amber-400 shadow-lg"; } else if (r.finalRank === 2 && r.totalPoints > 0) { rowBg = "bg-gradient-to-r from-slate-200 via-slate-100 to-slate-50 shadow-slate-300/20"; rankBadge = "bg-black text-white shadow-lg"; } else if (r.finalRank === 3 && r.totalPoints > 0) { rowBg = "bg-gradient-to-r from-orange-300 via-orange-200 to-orange-50 shadow-orange-300/20"; rankBadge = "bg-black text-white shadow-lg"; }
+          html += `<tr class="${r.totalPoints > 0 ? '' : 'opacity-80'} group transition-all duration-300 border-none uppercase uppercase"><td class="p-4 rounded-l-[2rem] ${rowBg} text-center border-none uppercase uppercase">${r.totalPoints > 0 ? `<div class="${rankBadge} w-14 h-14 rounded-full flex items-center justify-center mx-auto font-black text-3xl group-hover:scale-110 transition-transform uppercase uppercase">${r.finalRank}</div>` : `<span class="text-slate-400 font-black uppercase uppercase">-</span>`}</td><td class="p-4 ${rowBg} text-center border-none uppercase uppercase uppercase"><span class="bg-black text-white font-black px-4 py-2 rounded-xl text-sm tracking-wider shadow-md uppercase uppercase uppercase">${r.bib || '-'}</span></td><td class="p-4 ${rowBg} border-none uppercase uppercase uppercase"><div class="font-black text-2xl ${textColor} leading-tight uppercase tracking-tight uppercase uppercase uppercase">${r.name}</div><div class="text-xs font-black ${schoolColor} uppercase tracking-widest mt-1.5 flex items-center gap-1.5 uppercase uppercase uppercase">${r.school}</div></td>${state.events.map(e => `<td class="p-4 ${rowBg} text-center font-mono font-black text-slate-800 text-lg tracking-tighter border-none uppercase uppercase uppercase">${formatDisplayTime(r.scores?.[e.id])}</td>`).join('')}<td class="p-4 ${rowBg} text-center border-none uppercase uppercase uppercase uppercase"><div class="font-mono font-black text-white bg-blue-700 px-5 py-2.5 rounded-2xl inline-block shadow-lg text-sm uppercase uppercase uppercase">${formatTotalTime(r.totalTime)}</div></td><td class="p-4 rounded-r-[2rem] ${rowBg} text-center border-none uppercase uppercase uppercase uppercase"><div class="font-black text-5xl px-7 py-3 rounded-2xl bg-white/80 text-blue-900 shadow-inner group-hover:scale-105 transition-transform uppercase uppercase uppercase">${r.totalPoints}</div></td></tr>`;
+        });
+      }
+      html += `</tbody></table></div></div>`; return html;
+    };
+
+    const generateAdminLeaderboardHTML = (data, title, bgHeaderClass) => {
+      let html = `<div class="mb-6 animate-in slide-in-from-bottom-4 duration-500 uppercase uppercase"><div class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl mb-6 text-white font-black text-sm tracking-wide shadow-md ${bgHeaderClass} uppercase uppercase uppercase"><i data-lucide="trophy" class="w-4 h-4 uppercase uppercase"></i> ${title}</div><div class="bg-white rounded-[2.5rem] shadow-xl overflow-hidden border-none uppercase"><div class="overflow-x-auto p-4 md:p-6 uppercase"><table class="w-full text-left border-none uppercase uppercase"><thead><tr class="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] border-none uppercase uppercase uppercase"><th class="p-6 text-center w-24 uppercase uppercase uppercase">RANK</th><th class="p-6 text-center w-24 uppercase uppercase uppercase">BIB</th><th class="p-6 uppercase uppercase uppercase">PESERTA</th>${state.events.map(e => `<th class="p-6 text-center font-black uppercase uppercase uppercase">${e.name}</th>`).join('')}<th class="p-6 text-center text-blue-600 font-black uppercase uppercase uppercase">TOTAL WAKTU</th><th class="p-6 text-center text-emerald-600 font-black uppercase uppercase uppercase">TOTAL POIN</th></tr></thead><tbody class="divide-y divide-slate-50 border-none uppercase">`;
+      if (data.length === 0) { html += `<tr><td colSpan="${5 + state.events.length}" class="p-24 text-center border-none uppercase uppercase uppercase uppercase"><div class="text-slate-200 font-black tracking-[0.4em] text-2xl uppercase uppercase uppercase uppercase uppercase">BELUM ADA DATA</div></td></tr>`; } else {
+        data.forEach(r => { html += `<tr class="hover:bg-slate-50 transition-colors border-none uppercase uppercase uppercase"><td class="p-6 text-center border-none uppercase uppercase uppercase uppercase">${r.totalPoints>0?`<div class="w-10 h-10 rounded-full flex items-center justify-center mx-auto font-black text-sm bg-slate-50 text-slate-600 shadow-inner uppercase uppercase uppercase">${r.finalRank}</div>`:'-'}</td><td class="p-6 text-center border-none uppercase uppercase uppercase uppercase"><span class="bg-slate-800 text-white px-2.5 py-1.5 rounded-lg text-xs font-black uppercase shadow-md uppercase uppercase uppercase uppercase">${r.bib||'-'}</span></td><td class="p-6 border-none uppercase uppercase uppercase uppercase"><div class="font-black text-slate-800 tracking-wide text-sm uppercase uppercase uppercase uppercase uppercase">${r.name}</div><div class="text-[10px] text-slate-400 font-bold uppercase mt-1 uppercase uppercase uppercase uppercase">${r.school}</div></td>${state.events.map(e => `<td class="p-6 text-center font-mono text-sm font-bold text-slate-500 border-none uppercase uppercase uppercase uppercase">${formatDisplayTime(r.scores?.[e.id])}</td>`).join('')}<td class="p-6 text-center font-mono text-sm font-black text-blue-600 border-none uppercase uppercase uppercase uppercase">${formatTotalTime(r.totalTime)}</td><td class="p-6 text-center font-black text-xl text-emerald-600 border-none uppercase uppercase uppercase uppercase">${r.totalPoints}</td></tr>`; });
+      }
+      html += `</tbody></table></div></div></div>`; return html;
+    };
+
+    // --- TAB RENDERING ---
+    const renderPesertaTable = () => {
+      const tbody = document.getElementById('peserta-tbody');
+      if (!tbody) return;
+      if (state.participants.length === 0) { tbody.innerHTML = `<tr><td colSpan="6" class="p-10 text-center text-slate-400 font-black uppercase tracking-widest">BELUM ADA DATA</td></tr>`; return; }
+      tbody.innerHTML = state.participants.map((p, i) => `
+        <tr class="hover:bg-blue-50/50 uppercase border-none uppercase">
+          <td class="p-6 text-slate-400 font-black uppercase">${i+1}</td>
+          <td class="p-6 uppercase"><span class="bg-slate-800 text-white px-2 py-1 rounded text-xs font-black shadow-sm uppercase uppercase uppercase">${p.bib||'-'}</span></td>
+          <td class="p-6 font-black text-slate-800 text-sm tracking-wide uppercase uppercase uppercase uppercase">${p.name}</td>
+          <td class="p-6 text-slate-500 font-bold text-xs uppercase uppercase uppercase uppercase">${p.school||'-'}</td>
+          <td class="p-6 font-black text-blue-600 text-xs uppercase uppercase uppercase uppercase uppercase">${p.gender==='L'?'PUTRA':'PUTRI'}</td>
+          <td class="p-6 text-center flex items-center justify-center gap-1 uppercase uppercase uppercase">
+            <button onclick="window.showEditModal('${p.id}')" class="text-blue-400 hover:bg-blue-100 p-2 rounded-xl transition-all uppercase uppercase uppercase"><i data-lucide="edit" class="w-4 h-4 uppercase uppercase"></i></button>
+            <button onclick="window.removeParticipant('${p.id}')" class="text-rose-400 hover:bg-rose-100 p-2 rounded-xl transition-all uppercase uppercase uppercase"><i data-lucide="trash-2" class="w-4 h-4 uppercase uppercase"></i></button>
+          </td>
+        </tr>`).join('');
+      if(window.lucide) lucide.createIcons();
+    };
+
+    const renderCabangList = () => {
+      const container = document.getElementById('cabang-list');
+      if (!container) return;
+      container.innerHTML = state.events.map((e, i) => `
+        <div class="bg-white p-6 rounded-3xl flex justify-between items-center shadow-md group uppercase transition-all hover:shadow-lg border-none uppercase uppercase">
+          <div class="flex items-center gap-4 uppercase uppercase uppercase">
+            <div class="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600 font-black text-xl uppercase uppercase">${i+1}</div>
+            <div class="uppercase"><h3 class="font-black text-lg text-slate-800 tracking-tight uppercase uppercase">${e.name}</h3></div>
+          </div>
+          <button onclick="window.removeEvent('${e.id}')" class="text-rose-300 hover:bg-rose-100 p-3 rounded-xl opacity-0 group-hover:opacity-100 transition-all uppercase uppercase uppercase">
+            <i data-lucide="trash-2" class="w-5 h-5 uppercase uppercase"></i>
+          </button>
+        </div>`).join('');
+      if(window.lucide) lucide.createIcons();
+    };
+
+    const renderInputHasilContainer = () => {
+      const container = document.getElementById('input-hasil-container');
+      if (!container) return;
+      if (state.participants.length === 0) { container.innerHTML = `<div class="text-center text-slate-400 p-12 border-2 border-dashed border-slate-200 rounded-3xl font-black bg-slate-50/50 uppercase tracking-widest uppercase uppercase uppercase">BELUM ADA DATA PESERTA</div>`; return; }
+      
+      const generateTable = (genderCode, title, accentColorClass, bgHeaderClass) => {
+        const filteredParts = state.participants.filter(p => p.gender === genderCode);
+        if (filteredParts.length === 0) return '';
+        let tableHtml = `<div class="mb-10 animate-in slide-in-from-bottom-4 uppercase uppercase"><div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl mb-4 text-white font-black text-sm tracking-wide shadow-lg ${bgHeaderClass} uppercase uppercase uppercase uppercase"><i data-lucide="users" class="w-4 h-4 uppercase uppercase uppercase"></i> ${title}</div><div class="overflow-hidden rounded-3xl bg-white shadow-xl border-none uppercase uppercase"><div class="overflow-x-auto uppercase"><table class="w-full text-left min-w-[800px] border-none uppercase uppercase uppercase uppercase"><thead class="bg-slate-50 text-slate-600 text-xs tracking-widest uppercase uppercase uppercase"><tr><th class="p-6 font-black sticky left-0 z-10 w-64 bg-slate-50 uppercase uppercase uppercase uppercase">PESERTA</th>${state.events.map(e => `<th class="p-6 font-black text-center align-middle uppercase uppercase uppercase uppercase"><div class="${accentColorClass} uppercase uppercase uppercase">🏁 ${e.name}</div></th>`).join('')}</tr></thead><tbody class="divide-y divide-slate-50 uppercase uppercase uppercase">`;
+        filteredParts.forEach(p => {
+          tableHtml += `<tr class="hover:bg-slate-50 group border-none uppercase uppercase uppercase"><td class="p-6 bg-white group-hover:bg-slate-50 sticky left-0 z-10 transition-colors border-none uppercase uppercase uppercase uppercase"><div class="flex items-center gap-3 uppercase uppercase uppercase uppercase uppercase">${p.bib ? `<span class="bg-slate-800 text-white text-[10px] px-2 py-1 rounded font-black shadow-sm uppercase uppercase uppercase uppercase uppercase">${p.bib}</span>` : ''}<span class="font-black text-slate-800 tracking-wide text-sm uppercase uppercase uppercase uppercase uppercase uppercase">${p.name}</span></div><div class="text-[10px] text-slate-400 ml-10 uppercase uppercase uppercase uppercase uppercase uppercase">${p.school}</div></td>`;
+          state.events.forEach(e => {
+            const score = p.scores?.[e.id] || {m:'', s:'', ms:''};
+            tableHtml += `<td class="p-4 bg-slate-50/20 border-none uppercase uppercase uppercase uppercase uppercase"><div class="flex flex-col items-center justify-center gap-1.5 uppercase uppercase uppercase uppercase uppercase uppercase"><div class="flex items-center justify-center bg-slate-800 p-1.5 rounded-xl shadow-lg border-none uppercase uppercase uppercase uppercase uppercase"><input type="number" id="m-${p.id}-${e.id}" min="0" placeholder="00" value="${score.m}" onblur="window.saveTime('${p.id}', '${e.id}')" class="w-12 p-1.5 text-center font-mono font-bold bg-slate-900 text-emerald-400 rounded-lg outline-none uppercase uppercase uppercase"/><span class="text-slate-500 font-black px-1 uppercase uppercase uppercase">:</span><input type="number" id="s-${p.id}-${e.id}" min="0" max="59" placeholder="00" value="${score.s}" onblur="window.saveTime('${p.id}', '${e.id}')" class="w-12 p-1.5 text-center font-mono font-bold bg-slate-900 text-emerald-400 rounded-lg outline-none uppercase uppercase uppercase"/><span class="text-slate-500 font-black px-1 uppercase uppercase uppercase">.</span><input type="number" id="ms-${p.id}-${e.id}" min="0" max="999" placeholder="000" value="${score.ms}" onblur="window.saveTime('${p.id}', '${e.id}')" class="w-14 p-1.5 text-center font-mono font-bold bg-slate-900 text-emerald-400 rounded-lg outline-none uppercase uppercase uppercase"/></div></div></td>`;
+          });
+          tableHtml += `</tr>`;
+        });
+        tableHtml += `</tbody></table></div></div></div>`;
+        return tableHtml;
+      };
+      container.innerHTML = generateTable('L', 'KATEGORI PUTRA', 'text-blue-600', 'bg-gradient-to-r from-blue-600 to-blue-800') + generateTable('P', 'KATEGORI PUTRI', 'text-pink-600', 'bg-gradient-to-r from-pink-500 to-rose-600');
+      if(window.lucide) lucide.createIcons();
+    };
+
+    const renderPublicLeaderboards = () => {
+      const results = getResults();
+      const boards = document.getElementById('public-leaderboards');
+      if(boards) {
+        boards.innerHTML = 
+          generateLeaderboardHTML(results.putra, 'KLASEMEN PUTRA', 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/50 uppercase uppercase uppercase') +
+          generateLeaderboardHTML(results.putri, 'KLASEMEN PUTRI', 'bg-gradient-to-br from-pink-500 to-rose-600 shadow-pink-500/50 uppercase uppercase uppercase');
+      }
+      if(window.lucide) lucide.createIcons();
+    };
+
+    const renderAdminLeaderboards = () => {
+      const results = getResults();
+      const adminBoards = document.getElementById('admin-leaderboards');
+      if(adminBoards) {
+        adminBoards.innerHTML = 
+          generateAdminLeaderboardHTML(results.putra, 'HASIL KATEGORI PUTRA', 'bg-gradient-to-r from-blue-600 to-blue-800 uppercase uppercase uppercase') +
+          generateAdminLeaderboardHTML(results.putri, 'HASIL KATEGORI PUTRI', 'bg-gradient-to-r from-pink-500 to-rose-600 uppercase uppercase uppercase');
+      }
+      if(window.lucide) lucide.createIcons();
+    };
+
+    const renderPengaturan = () => {
+      const s = state.settings;
+      const f1 = document.getElementById('set-ketua-nama'), f2 = document.getElementById('set-ketua-nip'), f3 = document.getElementById('set-koor-nama'), f4 = document.getElementById('set-koor-nip'), f5 = document.getElementById('set-kecamatan'), f6 = document.getElementById('set-tahun'), f7 = document.getElementById('set-sekretariat');
+      if(f1) f1.value = s.ketuaNama || '';
+      if(f2) f2.value = s.ketuaNip || '';
+      if(f3) f3.value = s.koorNama || '';
+      if(f4) f4.value = s.koorNip || '';
+      if(f5) f5.value = s.kecamatan || '';
+      if(f6) f6.value = s.tahun || '';
+      if(f7) f7.value = s.sekretariat || '';
+      
+      updatePengaturanPreview();
+      const contents = document.querySelectorAll('.pengaturan-content');
+      contents.forEach(c => c.classList.add('hidden'));
+      const activeContent = document.getElementById(`subtab-${state.activeSubTab}`);
+      if (activeContent) activeContent.classList.remove('hidden');
+    };
+
+    const updatePengaturanPreview = () => {
+      const s = state.settings;
+      const titleArea = document.getElementById('prev-kop-title');
+      if(titleArea) titleArea.innerHTML = `<p class="text-[10px] font-black text-slate-800 uppercase leading-relaxed uppercase">LAPORAN HASIL PERLOMBAAN</p><p class="text-[10px] font-black text-slate-800 uppercase leading-relaxed uppercase">KID'S ATHLETIC O2SN ${s.kecamatan || '-'}</p><p class="text-[10px] font-black text-slate-800 uppercase leading-relaxed uppercase">TAHUN ${s.tahun || '-'}</p>`;
+      
+      const p1 = document.getElementById('prev-ketua-nama'), p2 = document.getElementById('prev-ketua-nip'), p3 = document.getElementById('prev-koor-nama'), p4 = document.getElementById('prev-koor-nip');
+      if(p1) p1.innerText = s.ketuaNama || '(Belum diisi)';
+      if(p2) p2.innerText = 'NIP. ' + (s.ketuaNip || '-');
+      if(p3) p3.innerText = s.koorNama || '(Belum diisi)';
+      if(p4) p4.innerText = 'NIP. ' + (s.koorNip || '-');
+    };
+
+    const renderAdminSidebar = () => {
+      const menuItems = [
+        { id: 'peserta', icon: 'users', label: 'INPUT PESERTA' },
+        { id: 'cabang', icon: 'activity', label: 'CABANG LOMBA' },
+        { id: 'hasil', icon: 'timer', label: 'INPUT HASIL WAKTU' },
+        { id: 'hasil_pertandingan', icon: 'list-ordered', label: 'HASIL PERTANDINGAN' },
+        { id: 'laporan', icon: 'file-text', label: 'LAPORAN HASIL' },
+      ];
+
+      let html = `<div class="mb-4 px-2 uppercase uppercase"><p class="text-[10px] text-slate-400 font-black tracking-widest uppercase uppercase uppercase">Menu Dashboard</p></div>`;
+      menuItems.forEach(item => {
+        const isActive = state.activeTab === item.id;
+        html += `
+          <button onclick="window.setActiveTab('${item.id}')" class="w-full group flex items-center justify-between px-5 py-4 rounded-2xl font-black text-xs lg:text-sm transition-all duration-300 uppercase ${
+            isActive ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-xl translate-x-2' : 'bg-white/30 text-slate-500 hover:bg-white/60 hover:text-blue-600'
+          }">
+            <div class="flex items-center gap-3 uppercase uppercase"><i data-lucide="${item.icon}" class="w-5 h-5 uppercase"></i><span class="tracking-wide uppercase uppercase">${item.label}</span></div>
+            ${isActive ? `<i data-lucide="chevron-right" class="w-4 h-4 text-blue-200"></i>` : ''}
+          </button>`;
+      });
+
+      const isSettingsActive = state.activeTab === 'pengaturan';
+      html += `
+        <div class="pt-2 space-y-1 uppercase uppercase">
+          <button onclick="window.toggleSettingsMenu()" class="w-full group flex items-center justify-between px-5 py-4 rounded-2xl font-black text-xs lg:text-sm transition-all duration-300 uppercase ${
+            isSettingsActive ? 'bg-slate-100 text-blue-600 shadow-sm' : 'bg-white/30 text-slate-500 hover:bg-white/60'
+          }">
+            <div class="flex items-center gap-3 uppercase uppercase"><i data-lucide="settings" class="w-5 h-5 uppercase"></i><span class="tracking-wide uppercase">PENGATURAN</span></div>
+            <i data-lucide="${state.isSettingsExpanded ? 'chevron-down' : 'chevron-right'}" class="w-4 h-4 transition-transform uppercase uppercase"></i>
+          </button>
+          
+          <div id="sidebar-settings-submenu" class="${state.isSettingsExpanded ? 'block' : 'hidden'} pl-6 space-y-1 animate-in slide-in-from-top-2 duration-200 uppercase uppercase">
+            <button onclick="window.setSettingsTab('kop')" class="w-full text-left px-5 py-3 rounded-xl font-black text-[10px] tracking-wider transition-all uppercase uppercase ${
+              isSettingsActive && state.activeSubTab === 'kop' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-white hover:text-blue-600'
+            }">PENGATURAN KOP</button>
+            <button onclick="window.setSettingsTab('ttd')" class="w-full text-left px-5 py-3 rounded-xl font-black text-[10px] tracking-wider transition-all uppercase uppercase ${
+              isSettingsActive && state.activeSubTab === 'ttd' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-white hover:text-blue-600'
+            }">PENANDATANGAN</button>
+            <button onclick="window.setSettingsTab('keamanan')" class="w-full text-left px-5 py-3 rounded-xl font-black text-[10px] tracking-wider transition-all uppercase uppercase ${
+              isSettingsActive && state.activeSubTab === 'keamanan' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-white hover:text-blue-600'
+            }">RESET PASSWORD</button>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('sidebar-nav').innerHTML = html;
+      if(window.lucide) lucide.createIcons();
+    };
+
+    const renderAdminTabs = () => {
+      const tabs = ['peserta', 'cabang', 'hasil', 'hasil_pertandingan', 'laporan', 'pengaturan'];
+      tabs.forEach(tab => {
+        const el = document.getElementById(`tab-${tab}`);
+        if (el) state.activeTab === tab ? el.classList.remove('hidden') : el.classList.add('hidden');
+      });
+      if (state.activeTab === 'peserta') renderPesertaTable();
+      if (state.activeTab === 'cabang') renderCabangList();
+      if (state.activeTab === 'hasil') renderInputHasilContainer();
+      if (state.activeTab === 'hasil_pertandingan') renderAdminLeaderboards();
+      if (state.activeTab === 'pengaturan') renderPengaturan();
+    };
+
+    const renderApp = () => {
+      const publicView = document.getElementById('public-view'), adminView = document.getElementById('admin-view'), loginBtn = document.getElementById('login-btn');
+      if (state.isLoggedIn) {
+        publicView.classList.add('hidden'); adminView.classList.remove('hidden');
+        if (loginBtn) loginBtn.classList.add('hidden');
+        renderAdminSidebar(); renderAdminTabs();
+      } else {
+        publicView.classList.remove('hidden'); adminView.classList.add('hidden');
+        if (loginBtn) loginBtn.classList.remove('hidden');
+        const kecHeader = document.getElementById('header-kecamatan'), thnHeader = document.getElementById('header-tahun');
+        if(kecHeader) kecHeader.innerText = state.settings.kecamatan || '-';
+        if(thnHeader) thnHeader.innerText = `TAHUN ${state.settings.tahun || '-'}`;
+        renderPublicLeaderboards();
+      }
+      if(window.lucide) lucide.createIcons();
+    };
+
+    // --- ACTIONS HANDLERS ---
+    window.setActiveTab = (tabId) => { 
+      state.activeTab = tabId;
+      if (tabId !== 'pengaturan') state.isSettingsExpanded = false;
+      renderApp(); 
+    };
+
+    window.toggleSettingsMenu = () => {
+      state.isSettingsExpanded = !state.isSettingsExpanded;
+      state.activeTab = 'pengaturan';
+      if (!state.activeSubTab) state.activeSubTab = 'kop';
+      renderApp();
+    };
+
+    window.setSettingsTab = (subId) => {
+      state.activeTab = 'pengaturan';
+      state.activeSubTab = subId;
+      state.isSettingsExpanded = true;
+      renderApp();
+    };
+
+    window.handleLogin = (e) => {
+      e.preventDefault();
+      const u = document.getElementById('login-username').value.trim().toLowerCase(), p = document.getElementById('login-password').value.trim();
+      const passValid = state.settings.adminPassword || 'admin';
+      if (u === 'admin' && p === passValid) { 
+        state.isLoggedIn = true; 
+        window.hideLoginModal(); 
+        state.activeTab = 'peserta'; renderApp(); 
+      } else { const err = document.getElementById('login-error'); err.classList.remove('hidden'); err.innerText = 'USERNAME ATAU PASSWORD SALAH'; }
+    };
+    
+    window.doLogout = () => { state.isLoggedIn = false; renderApp(); };
+
+    window.addParticipant = (e) => {
+      e.preventDefault(); const name = document.getElementById('newPartName').value.trim(); if (!name) return;
+      const initialScores = {}; state.events.forEach(ev => { initialScores[ev.id] = { m: '', s: '', ms: '' }; });
+      state.participants.push({ id: Date.now().toString(), bib: document.getElementById('newPartBib').value.toUpperCase(), name: formatTitleCase(name), school: formatTitleCase(document.getElementById('newPartSchool').value.trim()), gender: document.getElementById('newPartGender').value, scores: initialScores, createdAt: Date.now() });
+      document.getElementById('newPartBib').value = ''; document.getElementById('newPartName').value = ''; document.getElementById('newPartSchool').value = '';
+      renderApp(); triggerAutoSync();
+    };
+
+    window.removeParticipant = (id) => { state.participants = state.participants.filter(p => p.id !== id); renderApp(); triggerAutoSync(); };
+    window.showEditModal = (id) => {
+      const p = state.participants.find(x => x.id === id); if(!p) return;
+      document.getElementById('edit-id').value = p.id; document.getElementById('edit-bib').value = p.bib || '';
+      document.getElementById('edit-name').value = p.name || ''; document.getElementById('edit-school').value = p.school || '';
+      document.getElementById('edit-gender').value = p.gender || 'L'; document.getElementById('edit-modal').classList.remove('hidden');
+    };
+    window.hideEditModal = () => { document.getElementById('edit-modal').classList.add('hidden'); };
+    window.handleUpdateParticipant = (e) => {
+      e.preventDefault(); const id = document.getElementById('edit-id').value, idx = state.participants.findIndex(p => p.id === id);
+      if(idx !== -1) { state.participants[idx].bib = document.getElementById('edit-bib').value.toUpperCase(); state.participants[idx].name = formatTitleCase(document.getElementById('edit-name').value.trim()); state.participants[idx].school = formatTitleCase(document.getElementById('edit-school').value.trim()); state.participants[idx].gender = document.getElementById('edit-gender').value; }
+      window.hideEditModal(); renderApp(); triggerAutoSync();
+    };
+
+    window.addEvent = (e) => {
+      e.preventDefault(); const eventName = document.getElementById('newEventName').value.trim(); if (!eventName) return;
+      state.events.push({ id: 'e' + Date.now(), name: eventName.toUpperCase(), createdAt: Date.now() });
+      document.getElementById('newEventName').value = ''; renderApp(); triggerAutoSync();
+    };
+    window.removeEvent = (id) => { state.events = state.events.filter(e => e.id !== id); renderApp(); triggerAutoSync(); };
+
+    window.saveTime = (pId, eId) => {
+      const mVal = document.getElementById(`m-${pId}-${eId}`).value, sVal = document.getElementById(`s-${pId}-${eId}`).value, msVal = document.getElementById(`ms-${pId}-${eId}`).value;
+      const idx = state.participants.findIndex(p => p.id === pId);
+      if(idx !== -1){ if(!state.participants[idx].scores) state.participants[idx].scores = {}; state.participants[idx].scores[eId] = { m: mVal, s: sVal, ms: msVal }; }
+      triggerAutoSync();
+    };
+
+    window.saveAppSettings = () => {
+      state.settings = { ...state.settings,
+        ketuaNama: document.getElementById('set-ketua-nama').value.trim(),
+        ketuaNip: document.getElementById('set-ketua-nip').value.trim(),
+        koorNama: document.getElementById('set-koor-nama').value.trim(),
+        koorNip: document.getElementById('set-koor-nip').value.trim(),
+        kecamatan: document.getElementById('set-kecamatan').value.trim().toUpperCase(),
+        tahun: document.getElementById('set-tahun').value.trim(),
+        sekretariat: document.getElementById('set-sekretariat').value.trim()
+      };
+      renderApp(); 
+      window.showNotification("PENGATURAN DISIMPAN", "success"); 
+      triggerAutoSync();
+    };
+
+    window.changeAdminPassword = () => {
+      const oldPass = document.getElementById('set-pass-old').value, newPass = document.getElementById('set-pass-new').value;
+      if (oldPass !== state.settings.adminPassword) { window.showNotification("PASSWORD LAMA SALAH", "error"); return; }
+      if (newPass.length < 4) { window.showNotification("PASSWORD BARU TERLALU PENDEK", "error"); return; }
+      state.settings.adminPassword = newPass;
+      document.getElementById('set-pass-old').value = ''; document.getElementById('set-pass-new').value = '';
+      window.showNotification("PASSWORD BERHASIL DIUBAH", "success"); triggerAutoSync();
+    };
+
+    window.togglePasswordVisibility = () => {
+      const input = document.getElementById('login-password'), icon = document.getElementById('pass-eye-icon');
+      if (input.type === 'password') { input.type = 'text'; icon.setAttribute('data-lucide', 'eye-off'); }
+      else { input.type = 'password'; icon.setAttribute('data-lucide', 'eye'); }
+      if(window.lucide) lucide.createIcons();
+    };
+
+    window.showLoginModal = () => { document.getElementById('login-modal').classList.remove('hidden'); };
+    window.hideLoginModal = () => { document.getElementById('login-modal').classList.add('hidden'); document.getElementById('login-error').classList.add('hidden'); };
+
+    // --- PRINTING ---
+    window.printOfficialReport = () => {
+      const results = getResults();
+      const printWin = window.open('', '_blank');
+      const tableHtml = (data, catTitle) => `
+        <h3 style="margin-top: 30px; border-left: 5px solid #2563eb; padding-left: 10px; text-transform: uppercase; font-size: 14px;">HASIL KATEGORI ${catTitle}</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px;">
+          <thead>
+            <tr style="background: #f1f5f9;">
+              <th style="border: 1px solid #ddd; padding: 8px; width: 40px; text-transform: uppercase;">RANK</th>
+              <th style="border: 1px solid #ddd; padding: 8px; width: 50px; text-transform: uppercase;">BIB</th>
+              <th style="border: 1px solid #ddd; padding: 8px; text-transform: uppercase;">NAMA PESERTA</th>
+              <th style="border: 1px solid #ddd; padding: 8px; text-transform: uppercase;">ASAL SEKOLAH</th>
+              ${state.events.map(e => `<th style="border: 1px solid #ddd; padding: 8px; text-align: center; text-transform: uppercase;">${e.name}</th>`).join('')}
+              <th style="border: 1px solid #ddd; padding: 8px; background: #e2e8f0; text-align: center; width: 90px; text-transform: uppercase;">TOTAL WAKTU</th>
+              <th style="border: 1px solid #ddd; padding: 8px; background: #e2e8f0; text-align: center; width: 50px; text-transform: uppercase;">POIN</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.map(r => `
+              <tr>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: bold;">${r.totalPoints > 0 ? r.finalRank : '-'}</td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${r.bib || '-'}</td>
+                <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; text-transform: uppercase;">${r.name}</td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-transform: uppercase;">${r.school}</td>
+                ${state.events.map(e => `<td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-family: monospace;">${formatDisplayTime(r.scores?.[e.id])}</td>`).join('')}
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: bold; color: #1e40af; font-family: monospace;">${formatTotalTime(r.totalTime)}</td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: bold;">${r.totalPoints}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>`;
+
+      printWin.document.write(`
+        <html>
+        <head>
+          <title>Laporan O2SN - ${state.settings.kecamatan}</title>
+          <style>
+            body { font-family: 'Plus Jakarta Sans', sans-serif; padding: 15mm; color: #333; line-height: 1.4; width: 100%; margin: 0 auto; box-sizing: border-box; }
+            .kop-container { display: grid; grid-template-columns: 40mm 1fr 40mm; align-items: end; width: 100%; margin-bottom: 5px; position: relative; padding: 0 5mm; }
+            .logo-box { display: flex; align-items: end; flex-shrink: 0; min-height: 85px; }
+            .logo-box-left { justify-content: flex-start; }
+            .logo-box-right { justify-content: flex-end; }
+            .kop-logo { width: 25mm; height: 25mm; object-fit: contain; }
+            .kop-text { text-align: center; padding: 0 10px; }
+            .kop-text h2 { margin: 0; font-size: 13px; font-weight: 800; letter-spacing: 0.5px; }
+            .main-title { margin: 5px 0; font-size: 16px; font-weight: 900; line-height: 1.1; text-transform: uppercase; color: #000; }
+            .kop-text p { margin: 0; font-size: 9px; font-weight: 600; color: #444; margin-top: 5px; }
+            .divider { border-bottom: 3px solid #000; margin: 2px 45mm 0 45mm; position: relative; }
+            .divider::after { content: ''; display: block; border-bottom: 1px solid #000; margin-top: 2px; }
+            .footer { margin-top: 40px; display: flex; justify-content: space-between; page-break-inside: avoid; width: 100%; }
+            .signature { text-align: center; width: 230px; }
+            .signature p { margin: 0; font-size: 11px; }
+            .signature .name { margin-top: 60px; font-weight: bold; text-decoration: underline; }
+            @media print { @page { margin: 0; } body { padding: 15mm; } .no-print { display: none; } }
+          </style>
+        </head>
+        <body>
+          <div class="kop-container">
+            <div class="logo-box logo-box-left"><img src="${URL_LOGO_O2SN}" class="kop-logo" alt="O2SN"></div>
+            <div class="kop-text">
+              <h2>PANITIA PELAKSANA</h2>
+              <div class="main-title">
+                <div>LAPORAN HASIL PERLOMBAAN</div>
+                <div>KID'S ATHLETIC O2SN ${state.settings.kecamatan}</div>
+                <div>TAHUN ${state.settings.tahun}</div>
+              </div>
+              <p>Sekretariat: ${state.settings.sekretariat}</p>
+            </div>
+            <div class="logo-box logo-box-right"><img src="${URL_LOGO_KKGO}" class="kop-logo" alt="KKGO" onerror="this.onerror=null; this.parentElement.innerHTML='<span style=\'font-size:10px;font-weight:bold;color:#ccc\'>LOGO KKGO</span>'"></div>
+          </div>
+          <div class="divider"></div>
+          ${tableHtml(results.putra, 'PUTRA (LAKI-LAKI)')}
+          <div style="page-break-after: always;"></div>
+          ${tableHtml(results.putri, 'PUTRI (PEREMPUAN)')}
+          <div class="footer">
+            <div class="signature">
+              <p>Mengetahui,</p><p>Ketua Pelaksana O2SN</p><p class="name">${state.settings.ketuaNama || '(...........................)'}</p><p>NIP. ${state.settings.ketuaNip || '...........................'}</p>
+            </div>
+            <div class="signature">
+              <p>Jakarta, ${new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'})}</p><p>Koordinator Cabor Kid's Athletic</p><p class="name">${state.settings.koorNama || '(...........................)'}</p><p>NIP. ${state.settings.koorNip || '...........................'}</p>
+            </div>
+          </div>
+          <div class="no-print" style="margin-top: 30px; text-align: center;"><button onclick="window.print()" style="padding: 12px 24px; background: #2563eb; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">CETAK SEKARANG</button></div>
+        </body>
+        </html>
+      `);
+      printWin.document.close();
+    };
+
+    // --- INITIALIZATION ---
+    window.onload = () => {
+      renderApp();
+      loadFromSpreadsheet();
+    };
+  </script>
+</body>
+</html>
