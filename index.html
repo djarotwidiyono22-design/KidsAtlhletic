@@ -654,6 +654,124 @@
     };
 
     // --- ACTIONS HANDLERS ---
+
+    // Menambahkan fungsi Download Template CSV
+    window.downloadTemplateCSV = () => {
+      const headers = ['BIB', 'NAMA_ATLET', 'ASAL_SEKOLAH', 'KATEGORI(L/P)'];
+      const csvContent = "data:text/csv;charset=utf-8," + headers.join(',') + "\n" + "001,John Doe,SDN 01,L\n002,Jane Doe,SDN 02,P";
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "template_peserta.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+
+    // Menambahkan fungsi Import CSV
+    window.handleImportCSV = (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target.result;
+        const lines = text.split('\n');
+        
+        if(lines.length < 2) {
+           window.showNotification("CSV KOSONG ATAU FORMAT SALAH", "error");
+           return;
+        }
+
+        let importedCount = 0;
+        
+        // Loop tiap baris (skip header pada index 0)
+        for(let i=1; i<lines.length; i++) {
+          const row = lines[i].split(',');
+          if(row.length >= 4) {
+            const bib = row[0].trim();
+            const name = row[1].trim();
+            const school = row[2].trim();
+            const genderRaw = row[3].trim().toUpperCase();
+            const gender = (genderRaw === 'P' || genderRaw === 'PEREMPUAN') ? 'P' : 'L';
+
+            if(name) {
+              const initialScores = {};
+              state.events.forEach(ev => { initialScores[ev.id] = { m: '', s: '', ms: '' }; });
+              
+              state.participants.push({
+                id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                bib: bib,
+                name: formatTitleCase(name),
+                school: formatTitleCase(school),
+                gender: gender,
+                scores: initialScores,
+                createdAt: Date.now()
+              });
+              importedCount++;
+            }
+          }
+        }
+        
+        if(importedCount > 0) {
+          window.showNotification(`${importedCount} PESERTA BERHASIL DIIMPORT`, "success");
+          renderApp();
+          triggerAutoSync();
+        } else {
+          window.showNotification("GAGAL MENGIMPOR DATA", "error");
+        }
+      };
+      
+      reader.readAsText(file);
+      event.target.value = ''; // Reset file input
+    };
+
+    // Menambahkan fungsi Ekspor Laporan CSV
+    window.downloadReportCSV = () => {
+      const results = getResults();
+      let csvContent = "data:text/csv;charset=utf-8,";
+      
+      const buildCsvSection = (data, title) => {
+        csvContent += title + "\n";
+        let headers = ['RANK', 'BIB', 'NAMA_ATLET', 'ASAL_SEKOLAH'];
+        state.events.forEach(e => headers.push(e.name.replace(/,/g, ''))); // hindari koma di nama event
+        headers.push('TOTAL_WAKTU(MS)', 'TOTAL_WAKTU(FORMAT)', 'TOTAL_POIN');
+        csvContent += headers.join(',') + "\n";
+
+        data.forEach(r => {
+          let row = [
+            r.totalPoints > 0 ? r.finalRank : '-',
+            r.bib || '-',
+            `"${r.name}"`,
+            `"${r.school}"`
+          ];
+          
+          state.events.forEach(e => {
+            row.push(formatDisplayTime(r.scores?.[e.id]));
+          });
+          
+          row.push(r.totalTime);
+          row.push(formatTotalTime(r.totalTime));
+          row.push(r.totalPoints);
+          
+          csvContent += row.join(',') + "\n";
+        });
+        csvContent += "\n";
+      };
+
+      buildCsvSection(results.putra, "KATEGORI PUTRA");
+      buildCsvSection(results.putri, "KATEGORI PUTRI");
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `laporan_hasil_o2sn_${state.settings.kecamatan || 'export'}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.showNotification("BERHASIL MENGEKSPOR DATA CSV", "success");
+    };
+
     window.setActiveTab = (tabId) => { 
       state.activeTab = tabId;
       if (tabId !== 'pengaturan') state.isSettingsExpanded = false;
