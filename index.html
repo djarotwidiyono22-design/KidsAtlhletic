@@ -39,8 +39,9 @@
     }
   </style>
 
-  <!-- Lucide Icons -->
+  <!-- Lucide Icons & SheetJS (Excel) -->
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body class="min-h-screen bg-fixed bg-center bg-cover relative font-sans selection:bg-blue-500 selection:text-white" style="background-image: url('https://outdoorsmagic.com/wp-content/uploads/2024/11/Best-Running-Packs.jpg')">
 
@@ -125,9 +126,9 @@
                 <p class="text-xs text-slate-500 font-bold tracking-widest mt-2 uppercase">KELOLA REGISTRASI ATLET</p>
               </div>
               <div class="flex gap-3 uppercase">
-                <button onclick="window.downloadTemplateCSV()" class="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-xs font-black tracking-widest transition-all shadow-sm uppercase">TEMPLATE</button>
-                <input type="file" accept=".csv" id="upload-csv" class="hidden" onchange="window.handleImportCSV(event)"/>
-                <label for="upload-csv" class="cursor-pointer flex items-center gap-2 bg-slate-800 text-white hover:bg-slate-700 px-5 py-2.5 rounded-xl text-xs font-black tracking-widest transition-all shadow-lg uppercase">IMPORT CSV</label>
+                <button onclick="window.downloadTemplateExcel()" class="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 px-4 py-2.5 rounded-xl text-xs font-black tracking-widest transition-all shadow-sm uppercase">TEMPLATE</button>
+                <input type="file" accept=".xlsx, .xls" id="upload-excel" class="hidden" onchange="window.handleImportExcel(event)"/>
+                <label for="upload-excel" class="cursor-pointer flex items-center gap-2 bg-slate-800 text-white hover:bg-slate-700 px-5 py-2.5 rounded-xl text-xs font-black tracking-widest transition-all shadow-lg uppercase">IMPORT EXCEL</label>
               </div>
             </div>
             
@@ -179,7 +180,7 @@
               <div><h2 class="text-3xl font-black flex items-center gap-3 text-slate-800 tracking-tight uppercase"><i data-lucide="file-text" class="text-blue-600 w-8 h-8"></i> LAPORAN HASIL</h2><p class="text-xs text-slate-500 font-bold tracking-widest mt-2 uppercase">CETAK PDF ATAU EKSPOR DATA</p></div>
               <div class="flex flex-wrap gap-3 uppercase">
                 <button onclick="window.printOfficialReport()" class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-8 py-3.5 rounded-2xl font-black tracking-widest shadow-lg hover:-translate-y-1 transition-all uppercase">CETAK LAPORAN (PDF)</button>
-                <button onclick="window.downloadReportCSV()" class="bg-white border border-emerald-200 text-emerald-600 px-8 py-3.5 rounded-2xl font-black tracking-widest shadow-sm hover:bg-emerald-50 transition-all uppercase">EKSPOR EXCEL (CSV)</button>
+                <button onclick="window.downloadReportExcel()" class="bg-white border border-emerald-200 text-emerald-600 px-8 py-3.5 rounded-2xl font-black tracking-widest shadow-sm hover:bg-emerald-50 transition-all uppercase">EKSPOR EXCEL (.XLSX)</button>
               </div>
             </div>
           </div>
@@ -655,95 +656,105 @@
 
     // --- ACTIONS HANDLERS ---
 
-    // Menambahkan fungsi Download Template CSV
-    window.downloadTemplateCSV = () => {
-      const headers = ['BIB', 'NAMA_ATLET', 'ASAL_SEKOLAH', 'KATEGORI(L/P)'];
-      const csvContent = "data:text/csv;charset=utf-8," + headers.join(',') + "\n" + "001,John Doe,SDN 01,L\n002,Jane Doe,SDN 02,P";
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", "template_peserta.csv");
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    // Menambahkan fungsi Download Template Excel
+    window.downloadTemplateExcel = () => {
+      if(typeof XLSX === 'undefined') { window.showNotification("LIBRARY EXCEL BELUM DIMUAT", "error"); return; }
+      const headers = [['BIB', 'NAMA_ATLET', 'ASAL_SEKOLAH', 'KATEGORI(L/P)']];
+      const data = [
+        ['001', 'John Doe', 'SDN 01', 'L'],
+        ['002', 'Jane Doe', 'SDN 02', 'P']
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(headers.concat(data));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Template Peserta");
+      XLSX.writeFile(wb, "template_peserta.xlsx");
     };
 
-    // Menambahkan fungsi Import CSV
-    window.handleImportCSV = (event) => {
+    // Menambahkan fungsi Import Excel
+    window.handleImportExcel = (event) => {
       const file = event.target.files[0];
       if (!file) return;
 
       const reader = new FileReader();
       reader.onload = (e) => {
-        const text = e.target.result;
-        const lines = text.split('\n');
-        
-        if(lines.length < 2) {
-           window.showNotification("CSV KOSONG ATAU FORMAT SALAH", "error");
-           return;
-        }
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, {type: 'array'});
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const json = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+          
+          if(json.length < 2) {
+             window.showNotification("EXCEL KOSONG ATAU FORMAT SALAH", "error");
+             return;
+          }
 
-        let importedCount = 0;
-        
-        // Loop tiap baris (skip header pada index 0)
-        for(let i=1; i<lines.length; i++) {
-          const row = lines[i].split(',');
-          if(row.length >= 4) {
-            const bib = row[0].trim();
-            const name = row[1].trim();
-            const school = row[2].trim();
-            const genderRaw = row[3].trim().toUpperCase();
-            const gender = (genderRaw === 'P' || genderRaw === 'PEREMPUAN') ? 'P' : 'L';
+          let importedCount = 0;
+          
+          // Loop tiap baris (skip header pada index 0)
+          for(let i=1; i<json.length; i++) {
+            const row = json[i];
+            if(row && row.length > 1) {
+              const bib = (row[0] || '').toString().trim();
+              const name = (row[1] || '').toString().trim();
+              const school = (row[2] || '').toString().trim();
+              const genderRaw = (row[3] || '').toString().trim().toUpperCase();
+              const gender = (genderRaw === 'P' || genderRaw === 'PEREMPUAN') ? 'P' : 'L';
 
-            if(name) {
-              const initialScores = {};
-              state.events.forEach(ev => { initialScores[ev.id] = { m: '', s: '', ms: '' }; });
-              
-              state.participants.push({
-                id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-                bib: bib,
-                name: formatTitleCase(name),
-                school: formatTitleCase(school),
-                gender: gender,
-                scores: initialScores,
-                createdAt: Date.now()
-              });
-              importedCount++;
+              if(name) {
+                const initialScores = {};
+                state.events.forEach(ev => { initialScores[ev.id] = { m: '', s: '', ms: '' }; });
+                
+                state.participants.push({
+                  id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                  bib: bib,
+                  name: formatTitleCase(name),
+                  school: formatTitleCase(school),
+                  gender: gender,
+                  scores: initialScores,
+                  createdAt: Date.now()
+                });
+                importedCount++;
+              }
             }
           }
-        }
-        
-        if(importedCount > 0) {
-          window.showNotification(`${importedCount} PESERTA BERHASIL DIIMPORT`, "success");
-          renderApp();
-          triggerAutoSync();
-        } else {
-          window.showNotification("GAGAL MENGIMPOR DATA", "error");
+          
+          if(importedCount > 0) {
+            window.showNotification(`${importedCount} PESERTA BERHASIL DIIMPORT`, "success");
+            renderApp();
+            triggerAutoSync();
+          } else {
+            window.showNotification("GAGAL MENGIMPOR DATA", "error");
+          }
+        } catch (error) {
+           window.showNotification("FILE EXCEL TIDAK VALID", "error");
         }
       };
       
-      reader.readAsText(file);
+      reader.readAsArrayBuffer(file);
       event.target.value = ''; // Reset file input
     };
 
-    // Menambahkan fungsi Ekspor Laporan CSV
-    window.downloadReportCSV = () => {
-      const results = getResults();
-      let csvContent = "data:text/csv;charset=utf-8,";
+    // Menambahkan fungsi Ekspor Laporan Excel
+    window.downloadReportExcel = () => {
+      if(typeof XLSX === 'undefined') { window.showNotification("LIBRARY EXCEL BELUM DIMUAT", "error"); return; }
       
-      const buildCsvSection = (data, title) => {
-        csvContent += title + "\n";
+      const results = getResults();
+      const wb = XLSX.utils.book_new();
+      
+      const buildSheetData = (data) => {
         let headers = ['RANK', 'BIB', 'NAMA_ATLET', 'ASAL_SEKOLAH'];
-        state.events.forEach(e => headers.push(e.name.replace(/,/g, ''))); // hindari koma di nama event
+        state.events.forEach(e => headers.push(e.name)); 
         headers.push('TOTAL_WAKTU(MS)', 'TOTAL_WAKTU(FORMAT)', 'TOTAL_POIN');
-        csvContent += headers.join(',') + "\n";
+        
+        let rows = [headers];
 
         data.forEach(r => {
           let row = [
             r.totalPoints > 0 ? r.finalRank : '-',
             r.bib || '-',
-            `"${r.name}"`,
-            `"${r.school}"`
+            r.name,
+            r.school
           ];
           
           state.events.forEach(e => {
@@ -754,22 +765,29 @@
           row.push(formatTotalTime(r.totalTime));
           row.push(r.totalPoints);
           
-          csvContent += row.join(',') + "\n";
+          rows.push(row);
         });
-        csvContent += "\n";
+        
+        return rows;
       };
 
-      buildCsvSection(results.putra, "KATEGORI PUTRA");
-      buildCsvSection(results.putri, "KATEGORI PUTRI");
+      if (results.putra.length > 0) {
+        const wsPutra = XLSX.utils.aoa_to_sheet(buildSheetData(results.putra));
+        XLSX.utils.book_append_sheet(wb, wsPutra, "Kategori Putra");
+      }
+      
+      if (results.putri.length > 0) {
+        const wsPutri = XLSX.utils.aoa_to_sheet(buildSheetData(results.putri));
+        XLSX.utils.book_append_sheet(wb, wsPutri, "Kategori Putri");
+      }
 
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", `laporan_hasil_o2sn_${state.settings.kecamatan || 'export'}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.showNotification("BERHASIL MENGEKSPOR DATA CSV", "success");
+      if (results.putra.length === 0 && results.putri.length === 0) {
+         const wsEmpty = XLSX.utils.aoa_to_sheet([["Belum ada data pertandingan"]]);
+         XLSX.utils.book_append_sheet(wb, wsEmpty, "Laporan");
+      }
+
+      XLSX.writeFile(wb, `laporan_hasil_o2sn_${state.settings.kecamatan || 'export'}.xlsx`);
+      window.showNotification("BERHASIL MENGEKSPOR DATA EXCEL", "success");
     };
 
     window.setActiveTab = (tabId) => { 
